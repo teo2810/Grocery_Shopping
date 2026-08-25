@@ -282,6 +282,13 @@
       <div id="archiveList"></div>
     </div>
     <div class="view" id="view-impostazioni">
+      <div class="settings-row" id="priceStatRow" style="display:none;">
+        <div class="left">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Totale stimato lista</span>
+        </div>
+        <span id="priceStatValue" style="font-weight:700;color:var(--accent);"></span>
+      </div>
       <div class="settings-row" onclick="toggleThemeToggle()">
         <div class="left">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -409,6 +416,8 @@ const STORAGE_KEY = 'spesa-app-v12';
 const ARCHIVE_KEY = 'spesa-app-archive';
 const THEME_KEY = 'spesa-app-theme';
 const HIDE_DONE_KEY = 'spesa-app-hide-done';
+const FREQ_HIDDEN_KEY = 'spesa-app-freq-hidden';
+const FREQ_RENAMED_KEY = 'spesa-app-freq-renamed';
 function loadData(key) {
   try {
     const raw = localStorage.getItem(key);
@@ -418,8 +427,15 @@ function loadData(key) {
 let items = loadData(STORAGE_KEY);
 let archives = loadData(ARCHIVE_KEY);
 let hideDone = localStorage.getItem(HIDE_DONE_KEY) === 'true';
+let freqHidden = loadData(FREQ_HIDDEN_KEY); // array di baseKey nascosti dai Frequenti
+let freqRenamed = (() => {
+  try { return JSON.parse(localStorage.getItem(FREQ_RENAMED_KEY) || '{}'); }
+  catch (e) { return {}; }
+})(); // baseKey -> nome personalizzato
 function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 function saveArchive() { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives)); }
+function saveFreqHidden() { localStorage.setItem(FREQ_HIDDEN_KEY, JSON.stringify(freqHidden)); }
+function saveFreqRenamed() { localStorage.setItem(FREQ_RENAMED_KEY, JSON.stringify(freqRenamed)); }
 const TABS_ORDER = ['impostazioni', 'archivio', 'frequenti', 'lista'];
 let activeTab = 'lista';
 let modalCallback = null;
@@ -460,7 +476,9 @@ function updateHideDoneUI() {
   }
 }
 function openModal(options) {
-  const { title, desc, svgIcon, showInputs, confirmText, cancelText, isDanger, onConfirm } = options;
+  const { title, desc, svgIcon, showInputs, confirmText, cancelText, isDanger, onConfirm,
+          inputTotalPlaceholder, inputNamePlaceholder, inputTotalValue, inputNameValue,
+          showTotalInput, showNameInput } = options;
   document.getElementById('modalTitle').textContent = title || '';
   document.getElementById('modalDesc').textContent = desc || '';
   const iconEl = document.getElementById('modalIcon');
@@ -472,16 +490,26 @@ function openModal(options) {
   }
   const inputTotal = document.getElementById('modalInputTotal');
   const inputName = document.getElementById('modalInputName');
-  if (showInputs) {
+  const wantsTotal = showInputs && showTotalInput !== false;
+  const wantsName = showInputs && showNameInput !== false;
+  inputTotal.placeholder = inputTotalPlaceholder || 'Totale speso (€) es: 34.50';
+  inputName.placeholder = inputNamePlaceholder || 'Nome lista (opzionale)';
+  if (wantsTotal) {
     inputTotal.style.display = 'block';
-    inputName.style.display = 'block';
-    inputTotal.value = '';
-    inputName.value = '';
-    setTimeout(() => inputTotal.focus(), 150);
+    inputTotal.value = inputTotalValue || '';
   } else {
     inputTotal.style.display = 'none';
-    inputName.style.display = 'none';
+    inputTotal.value = '';
   }
+  if (wantsName) {
+    inputName.style.display = 'block';
+    inputName.value = inputNameValue || '';
+  } else {
+    inputName.style.display = 'none';
+    inputName.value = '';
+  }
+  if (wantsTotal) setTimeout(() => inputTotal.focus(), 150);
+  else if (wantsName) setTimeout(() => inputName.focus(), 150);
   const confirmBtn = document.getElementById('modalConfirmBtn');
   const cancelBtn = document.getElementById('modalCancelBtn');
   confirmBtn.textContent = confirmText || 'Conferma';
@@ -557,6 +585,7 @@ function addItem(name) {
       name: cleanDisplayTitle(name),
       category: categorize(name),
       isCompleted: false,
+      price: null,
       createdAt: Date.now()
     });
   }
@@ -593,13 +622,39 @@ function toggleItem(id) {
     }
   }, 320);
 }
+function editItemPrompt(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  openModal({
+    title: 'Modifica articolo',
+    desc: 'Il prezzo resta privato: non compare in lista, serve solo per stimare il totale in Opzioni.',
+    svgIcon: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>`,
+    showInputs: true,
+    inputNamePlaceholder: 'Nome articolo',
+    inputNameValue: item.name,
+    inputTotalPlaceholder: 'Prezzo (€) opzionale',
+    inputTotalValue: item.price != null ? String(item.price).replace('.', ',') : '',
+    confirmText: 'Salva',
+    onConfirm: ({ total, name }) => {
+      if (name && name.trim()) {
+        item.name = cleanDisplayTitle(name.trim());
+        item.category = categorize(item.name);
+      }
+      item.price = total ? parseFloat(total.replace(',', '.')) || null : null;
+      saveItems();
+      renderAllWithAnimation();
+    }
+  });
+}
 function triggerCompletionFlow() {
   const todayStr = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+  const estimatedTotal = items.reduce((sum, i) => sum + (i.price || 0), 0);
   openModal({
     title: 'Spesa completata',
     desc: `Hai acquistato tutti i ${items.length} articoli. Vuoi archiviare questa lista?`,
     svgIcon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
     showInputs: true,
+    inputTotalValue: estimatedTotal > 0 ? estimatedTotal.toFixed(2).replace('.', ',') : '',
     confirmText: 'Archivia e svuota',
     cancelText: 'Non ora',
     onConfirm: ({ total, name }) => {
@@ -729,7 +784,7 @@ function createCardHTML(item) {
       <div class="check ${item.isCompleted ? 'done' : ''}" onclick="toggleItem('${item.id}')">
         ${item.isCompleted ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
       </div>
-      <div class="card-text" onclick="toggleItem('${item.id}')">
+      <div class="card-text" data-id="${item.id}">
         <span>${nameSafe}</span>
       </div>
       <div class="badge" style="background:${style.bg};color:${style.text}">${item.category}</div>
@@ -766,24 +821,66 @@ function renderFrequent() {
       counts[key].count += 1;
     });
   });
-  const frequentList = Object.values(counts)
-    .filter(item => item.count >= 2)
+  const frequentList = Object.entries(counts)
+    .filter(([key, item]) => item.count >= 2 && !freqHidden.includes(key))
+    .map(([key, item]) => ({ key, ...item }))
     .sort((a, b) => b.count - a.count);
   if (frequentList.length === 0) {
     freqList.innerHTML = '<div class="empty">Gli articoli usati più di una volta appariranno qui.</div>';
     return;
   }
   freqList.innerHTML = frequentList.map(item => {
-    const displayName = cleanDisplayTitle(item.rawName);
+    const displayName = freqRenamed[item.key] || cleanDisplayTitle(item.rawName);
     const category = categorize(displayName);
     const style = CATEGORY_STYLES[category] || CATEGORY_STYLES['Altro'];
     const nameSafe = displayName.replace(/'/g, "\\'");
+    const keySafe = item.key.replace(/'/g, "\\'");
     return `
       <div class="card" onclick="addFromFrequent('${nameSafe}')">
         <div class="card-text"><span>${displayName}</span></div>
         <div class="badge" style="background:${style.bg};color:${style.text}">${category}</div>
+        <button class="del-btn" onclick="event.stopPropagation(); editFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Modifica" style="color:var(--text-muted);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+        </button>
+        <button class="del-btn" onclick="event.stopPropagation(); hideFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Elimina">✕</button>
       </div>`;
   }).join('');
+}
+function editFrequentPrompt(key, currentName) {
+  openModal({
+    title: 'Modifica frequente',
+    desc: 'Cambia il nome con cui questo articolo appare tra i Frequenti.',
+    showInputs: true,
+    showTotalInput: false,
+    inputNamePlaceholder: 'Nome articolo',
+    inputNameValue: currentName,
+    confirmText: 'Salva',
+    onConfirm: ({ name }) => {
+      if (name && name.trim()) {
+        freqRenamed[key] = cleanDisplayTitle(name.trim());
+      } else {
+        delete freqRenamed[key];
+      }
+      saveFreqRenamed();
+      renderFrequent();
+    }
+  });
+}
+function hideFrequentPrompt(key, name) {
+  openModal({
+    title: 'Rimuovi dai frequenti',
+    desc: `"${name}" non apparirà più tra i Frequenti, anche se lo riacquisti.`,
+    svgIcon: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+    confirmText: 'Rimuovi',
+    isDanger: true,
+    onConfirm: () => {
+      if (!freqHidden.includes(key)) freqHidden.push(key);
+      delete freqRenamed[key];
+      saveFreqHidden();
+      saveFreqRenamed();
+      renderFrequent();
+    }
+  });
 }
 function renderArchive() {
   const archEl = document.getElementById('archiveList');
@@ -833,6 +930,17 @@ function updateHeader() {
   }
   const btnAll = document.getElementById('btnClearAll');
   if (btnAll) btnAll.classList.toggle('disabled', total === 0);
+
+  const pricedItems = items.filter(i => i.price != null && i.price > 0);
+  const priceRow = document.getElementById('priceStatRow');
+  if (pricedItems.length > 0) {
+    const sum = pricedItems.reduce((s, i) => s + i.price, 0);
+    document.getElementById('priceStatValue').textContent =
+      `€${sum.toFixed(2).replace('.', ',')} (${pricedItems.length}/${total})`;
+    priceRow.style.display = 'flex';
+  } else {
+    priceRow.style.display = 'none';
+  }
 }
 function renderAll() { renderList(); renderFrequent(); renderArchive(); updateHeader(); }
 function closeSheet() {
@@ -882,6 +990,45 @@ swipeArea.addEventListener('touchend', e => {
     }
   }
 }, {passive: true});
+
+// Tap breve sul nome = completa articolo. Pressione prolungata (~480ms) = modifica nome/prezzo,
+// senza aggiungere nulla di visibile nella card. Delegato su #listActive: sopravvive ai re-render.
+const listActiveEl = document.getElementById('listActive');
+let pressTimer = null;
+let pressStart = null;
+let longPressFired = false;
+listActiveEl.addEventListener('touchstart', e => {
+  const textEl = e.target.closest('.card-text');
+  if (!textEl) return;
+  pressStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  longPressFired = false;
+  const id = textEl.dataset.id;
+  pressTimer = setTimeout(() => {
+    longPressFired = true;
+    if (navigator.vibrate) navigator.vibrate(12);
+    editItemPrompt(id);
+  }, 480);
+}, {passive: true});
+listActiveEl.addEventListener('touchmove', e => {
+  if (!pressTimer || !pressStart) return;
+  const dx = Math.abs(e.touches[0].clientX - pressStart.x);
+  const dy = Math.abs(e.touches[0].clientY - pressStart.y);
+  if (dx > 10 || dy > 10) { clearTimeout(pressTimer); pressTimer = null; }
+}, {passive: true});
+listActiveEl.addEventListener('touchend', e => {
+  clearTimeout(pressTimer);
+  pressTimer = null;
+  const textEl = e.target.closest('.card-text');
+  if (!textEl) return;
+  if (longPressFired) { longPressFired = false; return; }
+  toggleItem(textEl.dataset.id);
+});
+listActiveEl.addEventListener('contextmenu', e => {
+  const textEl = e.target.closest('.card-text');
+  if (!textEl) return;
+  e.preventDefault();
+  editItemPrompt(textEl.dataset.id);
+});
 const sheetHandle = document.getElementById('sheetHandle');
 sheetHandle.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive: true});
 sheetHandle.addEventListener('touchend', e => {
