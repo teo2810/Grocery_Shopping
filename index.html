@@ -182,10 +182,36 @@
   }
   input:checked + .slider { background-color: var(--accent); }
   input:checked + .slider:before { transform: translateX(20px); }
+  .bottom-bar {
+    position: fixed; left: 16px; right: 16px; bottom: 20px; z-index: 100;
+    max-width: 448px; margin: 0 auto; height: 60px;
+    background: var(--sheet-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color); border-radius: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    transition: transform 0.25s ease;
+  }
+  .bar-tabs {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    height: 44px;
+    display: flex; align-items: stretch; gap: 2px;
+    background: var(--bg-card-sub);
+    border: 1px solid var(--border-color);
+    border-radius: 22px; padding: 3px;
+  }
+  .bar-tab {
+    display: flex; flex-direction: row; align-items: center; gap: 7px;
+    padding: 0 16px; border: none; background: transparent; cursor: pointer;
+    border-radius: 19px; transition: background 0.2s ease;
+  }
+  .bar-tab svg { width: 17px; height: 17px; stroke: var(--text-muted); transition: stroke 0.2s ease; }
+  .bar-tab .lbl { font-size: 13px; font-weight: 700; color: var(--text-muted); transition: color 0.2s ease; }
+  .bar-tab.active { background: var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.10); }
+  .bar-tab.active svg { stroke: var(--accent); }
+  .bar-tab.active .lbl { color: var(--accent); }
   .fab-wrapper {
-    position: fixed; right: 16px; bottom: 38px; z-index: 90;
+    position: absolute; inset: 2px;
     display: flex; align-items: center; justify-content: flex-end;
-    width: calc(100% - 32px); max-width: 448px; pointer-events: none;
+    pointer-events: none;
   }
   .fab-container {
     pointer-events: auto; display: flex; align-items: center;
@@ -211,42 +237,13 @@
   }
   .fab-icon { stroke: white; transition: stroke 0.2s ease; }
   .fab-container.expanded .fab-icon { stroke: var(--accent); }
-  .bottom-sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
-    max-width: 480px; margin: 0 auto;
-    transform: translateY(calc(100% - 24px));
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .bottom-sheet.open, .bottom-sheet.always-visible { transform: translateY(0); }
-  .sheet-handle-area {
-    width: 100%; height: 24px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .sheet-handle-pill {
-    width: 36px; height: 5px; border-radius: 3px; background: var(--text-muted);
-    transition: background 0.2s ease;
-  }
-  .sheet-content {
-    background: var(--sheet-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border-color); border-radius: 20px 20px 0 0;
-    padding: 8px 12px 20px; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.08);
-  }
-  .tabs { display: flex; justify-content: space-around; }
-  .tab { 
-    display: flex; flex-direction: column; align-items: center; gap: 4px; 
-    padding: 8px 12px; border: none; background: none; cursor: pointer;
-  }
-  .tab svg { stroke: var(--text-muted); transition: stroke 0.2s ease; }
-  .tab .lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-  .tab.active svg { stroke: var(--accent); }
-  .tab.active .lbl { color: var(--accent); }
   .view { display: none; }
   .view.active { display: block; }
-  .sheet-backdrop {
-    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 95;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  .section-label {
+    font-size: 12px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin: 22px 4px 8px;
   }
-  .sheet-backdrop.active { opacity: 1; pointer-events: auto; }
 </style>
 </head>
 <body>
@@ -277,9 +274,6 @@
     </div>
     <div class="view" id="view-frequenti">
       <div class="list" id="freqList"></div>
-    </div>
-    <div class="view" id="view-archivio">
-      <div id="archiveList"></div>
     </div>
     <div class="view" id="view-impostazioni">
       <div class="settings-row" id="priceStatRow" style="display:none;">
@@ -316,38 +310,26 @@
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
+      <div class="section-label">Archivio</div>
+      <div id="archiveList"></div>
     </div>
   </div>
-  <div class="fab-wrapper" id="fabWrapper">
-    <div class="fab-container" id="fabContainer">
-      <input type="text" id="fabInput" class="fab-input" placeholder="Scrivi articolo..." autocomplete="off">
-      <button class="fab-btn" id="fabBtn" onclick="handleFabClick()" aria-label="Aggiungi">
-        <svg class="fab-icon" id="fabIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <div class="bottom-bar" id="bottomBar">
+    <div class="bar-tabs" id="barTabs">
+      <button class="bar-tab" id="tab-impostazioni" onclick="switchTab('impostazioni')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <span class="lbl">Opzioni</span>
+      </button>
+      <button class="bar-tab" id="tab-frequenti" onclick="switchTab('frequenti')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="lbl">Frequenti</span>
       </button>
     </div>
-  </div>
-  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
-  <div class="bottom-sheet" id="bottomSheet">
-    <div class="sheet-handle-area" id="sheetHandle">
-      <div class="sheet-handle-pill"></div>
-    </div>
-    <div class="sheet-content">
-      <div class="tabs">
-        <button class="tab" id="tab-impostazioni" onclick="switchTab('impostazioni')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span class="lbl">Opzioni</span>
-        </button>
-        <button class="tab" id="tab-archivio" onclick="switchTab('archivio')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-          <span class="lbl">Archivio</span>
-        </button>
-        <button class="tab" id="tab-frequenti" onclick="switchTab('frequenti')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span class="lbl">Frequenti</span>
-        </button>
-        <button class="tab active" id="tab-lista" onclick="switchTab('lista')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span class="lbl">Lista</span>
+    <div class="fab-wrapper" id="fabWrapper">
+      <div class="fab-container" id="fabContainer">
+        <input type="text" id="fabInput" class="fab-input" placeholder="Scrivi articolo..." autocomplete="off">
+        <button class="fab-btn" id="fabBtn" onclick="handleFabClick()" aria-label="Aggiungi">
+          <svg class="fab-icon" id="fabIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
     </div>
@@ -436,7 +418,7 @@ function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 function saveArchive() { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives)); }
 function saveFreqHidden() { localStorage.setItem(FREQ_HIDDEN_KEY, JSON.stringify(freqHidden)); }
 function saveFreqRenamed() { localStorage.setItem(FREQ_RENAMED_KEY, JSON.stringify(freqRenamed)); }
-const TABS_ORDER = ['impostazioni', 'archivio', 'frequenti', 'lista'];
+const TABS_ORDER = ['impostazioni', 'frequenti', 'lista'];
 let activeTab = 'lista';
 let modalCallback = null;
 function initTheme() {
@@ -545,6 +527,10 @@ function shareList(btnElement) {
   }
 }
 function handleFabClick() {
+  if (activeTab !== 'lista') {
+    switchTab('lista');
+    return;
+  }
   const container = document.getElementById('fabContainer');
   const input = document.getElementById('fabInput');
   if (!container.classList.contains('expanded')) {
@@ -565,6 +551,19 @@ function closeFab() {
   const input = document.getElementById('fabInput');
   container.classList.remove('expanded');
   input.blur();
+}
+const ICON_PLUS = '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
+const ICON_LIST = '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>';
+function updateFabMode() {
+  const icon = document.getElementById('fabIcon');
+  const btn = document.getElementById('fabBtn');
+  if (activeTab === 'lista') {
+    icon.innerHTML = ICON_PLUS;
+    btn.setAttribute('aria-label', 'Aggiungi articolo');
+  } else {
+    icon.innerHTML = ICON_LIST;
+    btn.setAttribute('aria-label', 'Torna alla lista');
+  }
 }
 document.addEventListener('click', (e) => {
   const fabWrapper = document.getElementById('fabWrapper');
@@ -921,12 +920,9 @@ function updateHeader() {
   } else if (activeTab === 'frequenti') {
     pTitle.textContent = "Frequenti";
     pSub.textContent = "Tocca per riaggiungere";
-  } else if (activeTab === 'archivio') {
-    pTitle.textContent = "Archivio";
-    pSub.textContent = `${archives.length} liste salvate`;
   } else {
     pTitle.textContent = "Opzioni";
-    pSub.textContent = `${total} articoli totali`;
+    pSub.textContent = `${total} articoli · ${archives.length} in archivio`;
   }
   const btnAll = document.getElementById('btnClearAll');
   if (btnAll) btnAll.classList.toggle('disabled', total === 0);
@@ -943,24 +939,8 @@ function updateHeader() {
   }
 }
 function renderAll() { renderList(); renderFrequent(); renderArchive(); updateHeader(); }
-function closeSheet() {
-  document.getElementById('bottomSheet').classList.remove('open');
-  document.getElementById('sheetBackdrop').classList.remove('active');
-}
-function toggleSheet() {
-  const sheet = document.getElementById('bottomSheet');
-  const backdrop = document.getElementById('sheetBackdrop');
-  sheet.classList.toggle('open');
-  backdrop.classList.toggle('active');
-}
 function switchTab(tab) {
   activeTab = tab;
-  const sheet = document.getElementById('bottomSheet');
-  if (tab === 'lista') {
-    sheet.classList.remove('always-visible');
-  } else {
-    sheet.classList.add('always-visible');
-  }
   TABS_ORDER.forEach(t => {
     const viewEl = document.getElementById('view-' + t);
     const tabEl = document.getElementById('tab-' + t);
@@ -969,7 +949,7 @@ function switchTab(tab) {
     if (tabEl) tabEl.classList.toggle('active', isActive);
   });
   updateHeader();
-  closeSheet();
+  updateFabMode();
 }
 let touchStartX = 0;
 let touchStartY = 0;
@@ -1029,18 +1009,24 @@ listActiveEl.addEventListener('contextmenu', e => {
   e.preventDefault();
   editItemPrompt(textEl.dataset.id);
 });
-const sheetHandle = document.getElementById('sheetHandle');
-sheetHandle.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, {passive: true});
-sheetHandle.addEventListener('touchend', e => {
-  const endY = e.changedTouches[0].clientY;
-  if (touchStartY - endY > 20 || Math.abs(touchStartY - endY) < 10) toggleSheet();
-}, {passive: true});
 document.getElementById('fabInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
     handleFabClick();
   }
 });
+// La barra in fondo (position:fixed) su iOS Safari non segue da sola la tastiera:
+// visualViewport è l'unico modo affidabile per saperlo e riposizionarla a mano.
+if (window.visualViewport) {
+  const bar = document.getElementById('bottomBar');
+  function adjustBarForKeyboard() {
+    const vv = window.visualViewport;
+    const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
+    bar.style.transform = keyboardOffset > 60 ? `translateY(-${keyboardOffset}px)` : '';
+  }
+  window.visualViewport.addEventListener('resize', adjustBarForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustBarForKeyboard);
+}
 // Import from share URL
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -1057,6 +1043,7 @@ document.getElementById('fabInput').addEventListener('keydown', e => {
 })();
 initTheme();
 renderAll();
+updateFabMode();
 // Service Worker registration
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
