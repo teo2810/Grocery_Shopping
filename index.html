@@ -397,7 +397,7 @@ function getBaseKey(text) {
   return clean;
 }
 function cleanDisplayTitle(text) {
-  let cleaned = text.replace(/^[0-9\s\.\,\-\_\/kg|gr|g|l|ml]+/gi, '').trim();
+  let cleaned = text.replace(/^\d+[.,]?\d*\s*(kg|gr|g|l|ml)?\s*/i, '').trim();
   if (!cleaned) cleaned = text.trim();
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
