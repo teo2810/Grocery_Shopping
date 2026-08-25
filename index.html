@@ -384,7 +384,7 @@ function getBaseKey(text) {
   if (!text) return '';
   let clean = text.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/^[0-9\s\.\,\-\_\/kg|gr|g|l|ml]+/gi, '')
+    .replace(/^\d+[.,]?\d*\s*(kg|gr|g|l|ml)?\s*/i, '')
     .trim();
   if (DICTIONARY[clean]) return clean;
   for (const token of clean.split(/\s+/)) {
