@@ -78,7 +78,7 @@
     display: flex; align-items: center;
     background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;
     padding: 14px 16px; margin-bottom: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
     transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease, max-height 0.35s ease, margin 0.35s ease, padding 0.35s ease;
     max-height: 80px; overflow: hidden; will-change: transform, opacity;
   }
@@ -126,7 +126,7 @@
     background: var(--bg-card); border: 1px solid var(--border-color);
     border-radius: 24px; padding: 24px; width: 100%; max-width: 320px;
     text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    transform: scale(0.9) translateY(10px); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.9) translateY(10px); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
   .modal-icon-svg { margin-bottom: 12px; display: flex; justify-content: center; }
@@ -186,26 +186,34 @@
     position: fixed; left: 16px; right: 16px; bottom: 20px; z-index: 100;
     max-width: 448px; margin: 0 auto; height: 60px;
     background: var(--sheet-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color); border-radius: 30px;
+    border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     transition: transform 0.25s ease;
   }
   .bar-tabs {
-    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-    height: 44px;
+    position: absolute; left: 2px; top: 50%; transform: translateY(-50%);
+    height: 56px;
     display: flex; align-items: stretch; gap: 2px;
     background: var(--bg-card-sub);
     border: 1px solid var(--border-color);
-    border-radius: 22px; padding: 3px;
+    border-radius: 28px; padding: 3px;
   }
   .bar-tab {
+    position: relative; z-index: 1;
     display: flex; flex-direction: row; align-items: center; gap: 7px;
     padding: 0 16px; border: none; background: transparent; cursor: pointer;
-    border-radius: 19px; transition: background 0.2s ease;
+    border-radius: 25px;
   }
   .bar-tab svg { width: 17px; height: 17px; stroke: var(--text-muted); transition: stroke 0.2s ease; }
   .bar-tab .lbl { font-size: 13px; font-weight: 700; color: var(--text-muted); transition: color 0.2s ease; }
-  .bar-tab.active { background: var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.10); }
+  .bar-tab.active svg { stroke: var(--accent); }
+  .bar-tab.active .lbl { color: var(--accent); }
+  .tab-indicator {
+    position: absolute; top: 3px; left: 0; width: 0; height: 50px; z-index: 0;
+    background: var(--bg-card); box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    border-radius: 25px; pointer-events: none; opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.2, 0, 0, 1), width 0.32s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+  }
   .bar-tab.active svg { stroke: var(--accent); }
   .bar-tab.active .lbl { color: var(--accent); }
   .fab-wrapper {
@@ -224,6 +232,19 @@
     width: 100%; background: var(--bg-card);
     border: 2px solid var(--accent); box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
   }
+  @keyframes fabSquash {
+    0% { transform: scaleY(1); }
+    35% { transform: scaleY(0.86); }
+    65% { transform: scaleY(1.07); }
+    100% { transform: scaleY(1); }
+  }
+  .fab-container.squash { animation: fabSquash 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes fabConfirm {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  .fab-icon.confirm { animation: fabConfirm 0.28s ease-out; }
   .fab-input {
     flex: 1; border: none; outline: none; background: transparent;
     padding: 0 0 0 20px; font-size: 16px; font-weight: 600; color: var(--text-primary);
@@ -238,12 +259,19 @@
   .fab-icon { stroke: white; transition: stroke 0.2s ease; }
   .fab-container.expanded .fab-icon { stroke: var(--accent); }
   .view { display: none; }
-  .view.active { display: block; }
+  .view.active { display: block; animation: viewFadeIn 0.18s ease; }
+  @keyframes viewFadeIn { from { opacity: 0; } to { opacity: 1; } }
   .section-label {
     font-size: 12px; font-weight: 700; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.04em;
     margin: 22px 4px 8px;
   }
+  .empty-icon { display: flex; justify-content: center; margin-bottom: 14px; opacity: 0.7; }
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .card.entering { animation: cardEnter 0.3s cubic-bezier(0.2, 0, 0, 1); }
 </style>
 </head>
 <body>
@@ -258,6 +286,13 @@
         <svg id="hideDoneIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="sortCategoryBtn" onclick="toggleSortCategory()" aria-label="Ordina per corsia negozio">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="19" r="3"/>
+          <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/>
+          <circle cx="18" cy="5" r="3"/>
         </svg>
       </button>
       <button class="icon-btn" id="shareHeaderBtn" onclick="shareList(this)" aria-label="Condividi">
@@ -316,6 +351,7 @@
   </div>
   <div class="bottom-bar" id="bottomBar">
     <div class="bar-tabs" id="barTabs">
+      <div class="tab-indicator" id="tabIndicator" data-hidden="true"></div>
       <button class="bar-tab" id="tab-impostazioni" onclick="switchTab('impostazioni')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
         <span class="lbl">Opzioni</span>
@@ -329,7 +365,7 @@
       <div class="fab-container" id="fabContainer">
         <input type="text" id="fabInput" class="fab-input" placeholder="Scrivi articolo..." autocomplete="off">
         <button class="fab-btn" id="fabBtn" onclick="handleFabClick()" aria-label="Aggiungi">
-          <svg class="fab-icon" id="fabIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg class="fab-icon" id="fabIcon" data-mode="plus" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
     </div>
@@ -349,26 +385,98 @@
   </div>
 </div>
 <script>
+const CATEGORY_ORDER = [
+  'Frutta e verdura', 'Pane e pasticceria', 'Banco gastronomia', 'Carne', 'Pesce e sushi',
+  'Freschi confezionati', 'Dispensa', 'Specialità etniche', 'Infanzia', 'Benessere',
+  'Bevande', 'Cura persona', 'Cura casa', 'Cancelleria e party', 'Animali', 'Surgelati e gelati', 'Altro'
+];
 const DICTIONARY = {
-  mela:'Ortofrutta', mele:'Ortofrutta', pera:'Ortofrutta', pere:'Ortofrutta', banana:'Ortofrutta', banane:'Ortofrutta', 
-  pomodoro:'Ortofrutta', pomodori:'Ortofrutta', insalata:'Ortofrutta', carota:'Ortofrutta', carote:'Ortofrutta', 
-  zucchina:'Ortofrutta', zucchine:'Ortofrutta', patata:'Ortofrutta', patate:'Ortofrutta', cipolla:'Ortofrutta', cipolle:'Ortofrutta', 
-  limone:'Ortofrutta', limoni:'Ortofrutta', arancia:'Ortofrutta', arance:'Ortofrutta', fragola:'Ortofrutta', fragole:'Ortofrutta',
-  latte:'Latticini', yogurt:'Latticini', formaggio:'Latticini', mozzarella:'Latticini', parmigiano:'Latticini', burro:'Latticini',
-  crudo:'Carne e Pesce', prosciutto:'Carne e Pesce', cotto:'Carne e Pesce', salame:'Carne e Pesce', pollo:'Carne e Pesce', 
-  pasta:'Dispensa', riso:'Dispensa', pane:'Dispensa', farina:'Dispensa', zucchero:'Dispensa', sale:'Dispensa', olio:'Dispensa',
-  acqua:'Bevande', vino:'Bevande', birra:'Bevande', succo:'Bevande',
-  detersivo:'Pulizia', sapone:'Pulizia', carta:'Pulizia', bagnoschiuma:'Pulizia'
+  // Frutta e verdura
+  mela:'Frutta e verdura', mele:'Frutta e verdura', pera:'Frutta e verdura', pere:'Frutta e verdura',
+  banana:'Frutta e verdura', banane:'Frutta e verdura', pomodoro:'Frutta e verdura', pomodori:'Frutta e verdura',
+  insalata:'Frutta e verdura', carota:'Frutta e verdura', carote:'Frutta e verdura', zucchina:'Frutta e verdura',
+  zucchine:'Frutta e verdura', patata:'Frutta e verdura', patate:'Frutta e verdura', cipolla:'Frutta e verdura',
+  cipolle:'Frutta e verdura', limone:'Frutta e verdura', limoni:'Frutta e verdura', arancia:'Frutta e verdura',
+  arance:'Frutta e verdura', fragola:'Frutta e verdura', fragole:'Frutta e verdura', aglio:'Frutta e verdura',
+  basilico:'Frutta e verdura', spinaci:'Frutta e verdura', kiwi:'Frutta e verdura', uva:'Frutta e verdura',
+  pesca:'Frutta e verdura', pesche:'Frutta e verdura', melone:'Frutta e verdura', anguria:'Frutta e verdura',
+  ananas:'Frutta e verdura', funghi:'Frutta e verdura', sedano:'Frutta e verdura', finocchio:'Frutta e verdura',
+  finocchi:'Frutta e verdura', melanzana:'Frutta e verdura', melanzane:'Frutta e verdura', peperone:'Frutta e verdura',
+  peperoni:'Frutta e verdura', broccoli:'Frutta e verdura', cavolfiore:'Frutta e verdura', prezzemolo:'Frutta e verdura',
+  rucola:'Frutta e verdura', avocado:'Frutta e verdura', zenzero:'Frutta e verdura',
+  // Pane e pasticceria (banco fresco forno)
+  pane:'Pane e pasticceria', panini:'Pane e pasticceria', focaccia:'Pane e pasticceria', grissini:'Pane e pasticceria',
+  torta:'Pane e pasticceria', cornetti:'Pane e pasticceria', brioche:'Pane e pasticceria',
+  pandoro:'Pane e pasticceria', panettone:'Pane e pasticceria',
+  // Banco gastronomia (affettati e formaggi al banco, non carne cruda)
+  affettati:'Banco gastronomia', mortadella:'Banco gastronomia', olive:'Banco gastronomia', bresaola:'Banco gastronomia',
+  prosciutto:'Banco gastronomia', salame:'Banco gastronomia', speck:'Banco gastronomia', sottaceti:'Banco gastronomia',
+  // Carne (banco macelleria, carne cruda)
+  pollo:'Carne', manzo:'Carne', maiale:'Carne', wurstel:'Carne', tacchino:'Carne', vitello:'Carne',
+  salsiccia:'Carne', salsicce:'Carne', macinato:'Carne', cotoletta:'Carne', bistecca:'Carne', hamburger:'Carne',
+  // Pesce e sushi
+  pesce:'Pesce e sushi', salmone:'Pesce e sushi', tonno:'Pesce e sushi', gamberi:'Pesce e sushi',
+  sushi:'Pesce e sushi', vongole:'Pesce e sushi', cozze:'Pesce e sushi', gamberetti:'Pesce e sushi',
+  calamari:'Pesce e sushi', polpo:'Pesce e sushi', merluzzo:'Pesce e sushi', orata:'Pesce e sushi',
+  branzino:'Pesce e sushi', alici:'Pesce e sushi', sgombro:'Pesce e sushi',
+  // Freschi confezionati
+  latte:'Freschi confezionati', yogurt:'Freschi confezionati', formaggio:'Freschi confezionati', mozzarella:'Freschi confezionati',
+  parmigiano:'Freschi confezionati', burro:'Freschi confezionati', ricotta:'Freschi confezionati',
+  uova:'Freschi confezionati', panna:'Freschi confezionati', mascarpone:'Freschi confezionati',
+  stracchino:'Freschi confezionati', gorgonzola:'Freschi confezionati', provola:'Freschi confezionati', grana:'Freschi confezionati',
+  // Dispensa (include i biscotti confezionati, non quelli freschi del forno)
+  pasta:'Dispensa', riso:'Dispensa', farina:'Dispensa', zucchero:'Dispensa', sale:'Dispensa', olio:'Dispensa',
+  aceto:'Dispensa', caffe:'Dispensa', legumi:'Dispensa', fagioli:'Dispensa', ceci:'Dispensa',
+  marmellata:'Dispensa', miele:'Dispensa', cereali:'Dispensa', biscotti:'Dispensa', lenticchie:'Dispensa',
+  passata:'Dispensa', pelati:'Dispensa', lievito:'Dispensa', dado:'Dispensa', pangrattato:'Dispensa',
+  // Specialità etniche
+  curry:'Specialità etniche', soia:'Specialità etniche', tortillas:'Specialità etniche', couscous:'Specialità etniche',
+  wasabi:'Specialità etniche', miso:'Specialità etniche', noodles:'Specialità etniche', basmati:'Specialità etniche', tofu:'Specialità etniche',
+  // Infanzia
+  pannolini:'Infanzia', omogeneizzato:'Infanzia', salviette:'Infanzia', ciuccio:'Infanzia', biberon:'Infanzia',
+  // Benessere
+  integratori:'Benessere', vitamine:'Benessere', proteine:'Benessere', barrette:'Benessere', probiotici:'Benessere',
+  // Bevande
+  acqua:'Bevande', vino:'Bevande', birra:'Bevande', succo:'Bevande', cola:'Bevande', bibita:'Bevande',
+  aranciata:'Bevande', spumante:'Bevande', prosecco:'Bevande',
+  // Cura persona
+  sapone:'Cura persona', bagnoschiuma:'Cura persona', shampoo:'Cura persona', dentifricio:'Cura persona',
+  deodorante:'Cura persona', spazzolino:'Cura persona', rasoio:'Cura persona', assorbenti:'Cura persona',
+  // Cura casa
+  detersivo:'Cura casa', carta:'Cura casa', ammorbidente:'Cura casa', candeggina:'Cura casa', spugna:'Cura casa',
+  scottex:'Cura casa', sgrassatore:'Cura casa', tovaglioli:'Cura casa',
+  // Cancelleria e party
+  candele:'Cancelleria e party', palloncini:'Cancelleria e party', quaderni:'Cancelleria e party',
+  penne:'Cancelleria e party', addobbi:'Cancelleria e party',
+  // Animali
+  crocchette:'Animali', lettiera:'Animali', sabbietta:'Animali', guinzaglio:'Animali',
+  // Surgelati e gelati
+  gelato:'Surgelati e gelati', surgelato:'Surgelati e gelati', surgelati:'Surgelati e gelati', ghiaccioli:'Surgelati e gelati'
 };
 const CATEGORY_STYLES = {
-  'Ortofrutta':     { bg:'#DCFCE7', text:'#15803D' },
-  'Latticini':      { bg:'#E0F2FE', text:'#0369A1' },
-  'Dispensa':       { bg:'#FFEDD5', text:'#C2410C' },
-  'Carne e Pesce':  { bg:'#FFE4E6', text:'#E11D48' },
-  'Bevande':        { bg:'#E0E7FF', text:'#4338CA' },
-  'Pulizia':        { bg:'#F3E8FF', text:'#6B21A8' },
-  'Altro':          { bg:'#F1F5F9', text:'#475569' },
+  'Frutta e verdura':     { bg:'#DCFCE7', text:'#15803D' },
+  'Pane e pasticceria':   { bg:'#FEF3C7', text:'#92400E' },
+  'Banco gastronomia':    { bg:'#F5E9DA', text:'#9A3412' },
+  'Carne':                { bg:'#FEE2E2', text:'#B91C1C' },
+  'Pesce e sushi':        { bg:'#CFFAFE', text:'#0E7490' },
+  'Freschi confezionati': { bg:'#E0F2FE', text:'#0369A1' },
+  'Dispensa':             { bg:'#FFEDD5', text:'#C2410C' },
+  'Specialità etniche':   { bg:'#FDF2FF', text:'#A21CAF' },
+  'Infanzia':             { bg:'#FEF9C3', text:'#A16207' },
+  'Benessere':            { bg:'#D1FAE5', text:'#047857' },
+  'Bevande':              { bg:'#E0E7FF', text:'#4338CA' },
+  'Cura persona':         { bg:'#FCE7F3', text:'#BE185D' },
+  'Cura casa':            { bg:'#EDE9FE', text:'#6D28D9' },
+  'Cancelleria e party':  { bg:'#CCFBF1', text:'#0F766E' },
+  'Animali':              { bg:'#F5EBDD', text:'#78716C' },
+  'Surgelati e gelati':   { bg:'#DBEAFE', text:'#1D4ED8' },
+  'Altro':                { bg:'#F1F5F9', text:'#475569' },
 };
+const CHECK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>';
+const X_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+const EMPTY_ICON_CART = '<div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>';
+const EMPTY_ICON_CLOCK = '<div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>';
+const EMPTY_ICON_ARCHIVE = '<div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>';
 function getBaseKey(text) {
   if (!text) return '';
   let clean = text.toLowerCase()
@@ -398,6 +506,7 @@ const STORAGE_KEY = 'spesa-app-v12';
 const ARCHIVE_KEY = 'spesa-app-archive';
 const THEME_KEY = 'spesa-app-theme';
 const HIDE_DONE_KEY = 'spesa-app-hide-done';
+const SORT_CATEGORY_KEY = 'spesa-app-sort-category';
 const FREQ_HIDDEN_KEY = 'spesa-app-freq-hidden';
 const FREQ_RENAMED_KEY = 'spesa-app-freq-renamed';
 function loadData(key) {
@@ -409,6 +518,7 @@ function loadData(key) {
 let items = loadData(STORAGE_KEY);
 let archives = loadData(ARCHIVE_KEY);
 let hideDone = localStorage.getItem(HIDE_DONE_KEY) === 'true';
+let sortByCategory = localStorage.getItem(SORT_CATEGORY_KEY) === 'true';
 let freqHidden = loadData(FREQ_HIDDEN_KEY); // array di baseKey nascosti dai Frequenti
 let freqRenamed = (() => {
   try { return JSON.parse(localStorage.getItem(FREQ_RENAMED_KEY) || '{}'); }
@@ -428,6 +538,7 @@ function initTheme() {
   document.getElementById('themeToggle').checked = isDark;
   document.getElementById('themeColor').setAttribute('content', isDark ? '#0F172A' : '#F1F5F9');
   updateHideDoneUI();
+  updateSortCategoryUI();
 }
 function switchTheme(isDark) {
   const theme = isDark ? 'dark' : 'light';
@@ -456,6 +567,16 @@ function updateHideDoneUI() {
     btn.classList.remove('active');
     icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
   }
+}
+function toggleSortCategory() {
+  sortByCategory = !sortByCategory;
+  localStorage.setItem(SORT_CATEGORY_KEY, sortByCategory);
+  updateSortCategoryUI();
+  renderAllWithAnimation();
+}
+function updateSortCategoryUI() {
+  const btn = document.getElementById('sortCategoryBtn');
+  if (btn) btn.classList.toggle('active', sortByCategory);
 }
 function openModal(options) {
   const { title, desc, svgIcon, showInputs, confirmText, cancelText, isDanger, onConfirm,
@@ -526,6 +647,12 @@ function shareList(btnElement) {
     navigator.clipboard.writeText(shareUrl);
   }
 }
+function playSquash(container) {
+  container.classList.remove('squash');
+  void container.offsetWidth; // forza il reflow, altrimenti il browser non ri-avvia l'animazione se era già stata giocata
+  container.classList.add('squash');
+  setTimeout(() => container.classList.remove('squash'), 400);
+}
 function handleFabClick() {
   if (activeTab !== 'lista') {
     switchTab('lista');
@@ -535,12 +662,18 @@ function handleFabClick() {
   const input = document.getElementById('fabInput');
   if (!container.classList.contains('expanded')) {
     container.classList.add('expanded');
+    playSquash(container);
     setTimeout(() => input.focus(), 150);
   } else {
     const name = input.value.trim();
     if (name) {
       addItem(name);
       input.value = '';
+      const icon = document.getElementById('fabIcon');
+      icon.classList.remove('confirm');
+      void icon.offsetWidth; // forza il reflow per poter ri-attivare l'animazione a raffica
+      icon.classList.add('confirm');
+      setTimeout(() => icon.classList.remove('confirm'), 300);
     } else {
       closeFab();
     }
@@ -550,6 +683,7 @@ function closeFab() {
   const container = document.getElementById('fabContainer');
   const input = document.getElementById('fabInput');
   container.classList.remove('expanded');
+  playSquash(container);
   input.blur();
 }
 const ICON_PLUS = '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
@@ -557,13 +691,22 @@ const ICON_LIST = '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2
 function updateFabMode() {
   const icon = document.getElementById('fabIcon');
   const btn = document.getElementById('fabBtn');
-  if (activeTab === 'lista') {
-    icon.innerHTML = ICON_PLUS;
-    btn.setAttribute('aria-label', 'Aggiungi articolo');
-  } else {
-    icon.innerHTML = ICON_LIST;
-    btn.setAttribute('aria-label', 'Torna alla lista');
-  }
+  const wantPlus = activeTab === 'lista';
+  const newIcon = wantPlus ? ICON_PLUS : ICON_LIST;
+  btn.setAttribute('aria-label', wantPlus ? 'Aggiungi articolo' : 'Torna alla lista');
+  if (icon.dataset.mode === (wantPlus ? 'plus' : 'list')) return; // già in quello stato, niente da animare
+  icon.dataset.mode = wantPlus ? 'plus' : 'list';
+  icon.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+  icon.style.opacity = '0';
+  icon.style.transform = 'scale(0.5) rotate(-40deg)';
+  setTimeout(() => {
+    icon.innerHTML = newIcon;
+    icon.style.transform = 'scale(0.5) rotate(40deg)';
+    requestAnimationFrame(() => {
+      icon.style.opacity = '1';
+      icon.style.transform = 'scale(1) rotate(0deg)';
+    });
+  }, 150);
 }
 document.addEventListener('click', (e) => {
   const fabWrapper = document.getElementById('fabWrapper');
@@ -572,7 +715,7 @@ document.addEventListener('click', (e) => {
     if (input && !input.value.trim()) closeFab();
   }
 });
-function addItem(name) {
+function addItem(name, opts) {
   const key = getBaseKey(name);
   const existing = items.find(i => getBaseKey(i.name) === key);
   if (existing) {
@@ -582,14 +725,13 @@ function addItem(name) {
     items.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
       name: cleanDisplayTitle(name),
-      category: categorize(name),
       isCompleted: false,
       price: null,
       createdAt: Date.now()
     });
   }
   saveItems();
-  renderAllWithAnimation();
+  if (!opts || !opts.skipRender) renderAllWithAnimation();
 }
 function toggleItem(id) {
   const item = items.find(i => i.id === id);
@@ -601,7 +743,7 @@ function toggleItem(id) {
       const check = card.querySelector('.check');
       if (check) {
         check.classList.add('done');
-        check.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>';
+        check.innerHTML = CHECK_SVG;
       }
     } else {
       card.classList.remove('done');
@@ -637,7 +779,6 @@ function editItemPrompt(id) {
     onConfirm: ({ total, name }) => {
       if (name && name.trim()) {
         item.name = cleanDisplayTitle(name.trim());
-        item.category = categorize(item.name);
       }
       item.price = total ? parseFloat(total.replace(',', '.')) || null : null;
       saveItems();
@@ -757,7 +898,8 @@ function renderAllWithAnimation() {
   renderAll();
   const newCards = Array.from(activeContainer.children);
   newCards.forEach(card => {
-    if (card.id && firstPositions.has(card.id)) {
+    if (!card.id) return;
+    if (firstPositions.has(card.id)) {
       const firstTop = firstPositions.get(card.id);
       const lastTop = card.getBoundingClientRect().top;
       const deltaY = firstTop - lastTop;
@@ -771,37 +913,45 @@ function renderAllWithAnimation() {
           });
         });
       }
+    } else {
+      card.classList.add('entering');
+      setTimeout(() => card.classList.remove('entering'), 320);
     }
   });
 }
 function createCardHTML(item) {
-  const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES['Altro'];
+  const category = categorize(item.name);
+  const style = CATEGORY_STYLES[category] || CATEGORY_STYLES['Altro'];
   const nameSafe = item.name.replace(/'/g, "&#39;");
   const isHidden = hideDone && item.isCompleted;
   return `
     <div class="card ${item.isCompleted ? 'done' : ''} ${isHidden ? 'hidden-item' : ''}" id="card-${item.id}">
       <div class="check ${item.isCompleted ? 'done' : ''}" onclick="toggleItem('${item.id}')">
-        ${item.isCompleted ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+        ${item.isCompleted ? CHECK_SVG : ''}
       </div>
       <div class="card-text" data-id="${item.id}">
         <span>${nameSafe}</span>
       </div>
-      <div class="badge" style="background:${style.bg};color:${style.text}">${item.category}</div>
-      <button class="del-btn" onclick="deleteItem('${item.id}')" aria-label="Elimina">✕</button>
+      <div class="badge" style="background:${style.bg};color:${style.text}">${category}</div>
+      <button class="del-btn" onclick="deleteItem('${item.id}')" aria-label="Elimina">${X_SVG}</button>
     </div>`;
 }
 function renderList() {
   const activeEl = document.getElementById('listActive');
   if (items.length === 0) {
-    activeEl.innerHTML = '<div class="empty">La lista è vuota. Usa il tasto + per aggiungere un articolo.</div>';
+    activeEl.innerHTML = `<div class="empty">${EMPTY_ICON_CART}La lista è vuota. Usa il tasto + per aggiungere un articolo.</div>`;
   } else {
     const sorted = [...items].sort((a, b) => {
-      if (a.isCompleted === b.isCompleted) return a.createdAt - b.createdAt;
-      return a.isCompleted ? -1 : 1;
+      if (a.isCompleted !== b.isCompleted) return a.isCompleted ? -1 : 1;
+      if (sortByCategory) {
+        const orderA = CATEGORY_ORDER.indexOf(categorize(a.name));
+        const orderB = CATEGORY_ORDER.indexOf(categorize(b.name));
+        if (orderA !== orderB) return orderA - orderB;
+      }
+      return a.createdAt - b.createdAt;
     });
     activeEl.innerHTML = sorted.map(item => createCardHTML(item)).join('');
   }
-  updateHeader();
 }
 function renderFrequent() {
   const freqList = document.getElementById('freqList');
@@ -809,14 +959,14 @@ function renderFrequent() {
   items.forEach(i => {
     const key = getBaseKey(i.name);
     if (!key) return;
-    if (!counts[key]) counts[key] = { count: 0, rawName: i.name, category: i.category };
+    if (!counts[key]) counts[key] = { count: 0, rawName: i.name };
     counts[key].count += 1;
   });
   archives.forEach(arch => {
     arch.items.forEach(i => {
       const key = getBaseKey(i.name);
       if (!key) return;
-      if (!counts[key]) counts[key] = { count: 0, rawName: i.name, category: i.category };
+      if (!counts[key]) counts[key] = { count: 0, rawName: i.name };
       counts[key].count += 1;
     });
   });
@@ -825,7 +975,7 @@ function renderFrequent() {
     .map(([key, item]) => ({ key, ...item }))
     .sort((a, b) => b.count - a.count);
   if (frequentList.length === 0) {
-    freqList.innerHTML = '<div class="empty">Gli articoli usati più di una volta appariranno qui.</div>';
+    freqList.innerHTML = `<div class="empty">${EMPTY_ICON_CLOCK}Gli articoli usati più di una volta appariranno qui.</div>`;
     return;
   }
   freqList.innerHTML = frequentList.map(item => {
@@ -841,7 +991,7 @@ function renderFrequent() {
         <button class="del-btn" onclick="event.stopPropagation(); editFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Modifica" style="color:var(--text-muted);">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
         </button>
-        <button class="del-btn" onclick="event.stopPropagation(); hideFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Elimina">✕</button>
+        <button class="del-btn" onclick="event.stopPropagation(); hideFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Elimina">${X_SVG}</button>
       </div>`;
   }).join('');
 }
@@ -884,7 +1034,7 @@ function hideFrequentPrompt(key, name) {
 function renderArchive() {
   const archEl = document.getElementById('archiveList');
   if (archives.length === 0) {
-    archEl.innerHTML = '<div class="empty">Nessuna lista archiviata. Quando completi una spesa apparirà qui.</div>';
+    archEl.innerHTML = `<div class="empty">${EMPTY_ICON_ARCHIVE}Nessuna lista archiviata. Quando completi una spesa apparirà qui.</div>`;
     return;
   }
   archEl.innerHTML = archives.map(a => {
@@ -950,7 +1100,51 @@ function switchTab(tab) {
   });
   updateHeader();
   updateFabMode();
+  positionTabIndicator();
 }
+function positionTabIndicator() {
+  const indicator = document.getElementById('tabIndicator');
+  const activeBtn = document.querySelector('.bar-tab.active');
+  if (!indicator) return;
+  if (!activeBtn) {
+    // Nessun tab attivo (siamo su "Lista"): si richiude simmetricamente verso il proprio
+    // centro attuale - specchio esatto della comparsa, non un collasso verso il bordo sinistro
+    const lastLeft = parseFloat(indicator.dataset.lastLeft || '0');
+    const lastWidth = parseFloat(indicator.dataset.lastWidth || '0');
+    const lastCenter = lastLeft + lastWidth / 2;
+    indicator.style.transform = `translateX(${lastCenter}px)`;
+    indicator.style.width = '0px';
+    indicator.style.opacity = '0';
+    indicator.dataset.hidden = 'true';
+    return;
+  }
+  const targetLeft = activeBtn.offsetLeft;
+  const targetWidth = activeBtn.offsetWidth;
+  const targetCenter = targetLeft + targetWidth / 2;
+  const wasHidden = indicator.dataset.hidden === 'true';
+  if (wasHidden) {
+    // Riappare da nascosta: nasce come un punto al centro esatto del tab e si apre
+    // simmetricamente verso i due lati, invece di crescere da un bordo fisso verso destra
+    indicator.style.transition = 'none';
+    indicator.style.transform = `translateX(${targetCenter}px)`;
+    indicator.style.width = '0px';
+    void indicator.offsetWidth; // forza il reflow prima di ripristinare la transizione
+    indicator.style.transition = '';
+    requestAnimationFrame(() => {
+      indicator.style.opacity = '1';
+      indicator.style.transform = `translateX(${targetLeft}px)`;
+      indicator.style.width = targetWidth + 'px';
+    });
+  } else {
+    indicator.style.opacity = '1';
+    indicator.style.width = activeBtn.offsetWidth + 'px';
+    indicator.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+  }
+  indicator.dataset.hidden = 'false';
+  indicator.dataset.lastLeft = targetLeft;
+  indicator.dataset.lastWidth = targetWidth;
+}
+window.addEventListener('resize', positionTabIndicator);
 let touchStartX = 0;
 let touchStartY = 0;
 const swipeArea = document.getElementById('swipeArea');
@@ -1035,7 +1229,8 @@ if (window.visualViewport) {
     try {
       const names = JSON.parse(decodeURI(atob(data)));
       if (Array.isArray(names)) {
-        names.forEach(n => addItem(n));
+        names.forEach(n => addItem(n, { skipRender: true }));
+        renderAllWithAnimation();
         history.replaceState(null, '', window.location.pathname);
       }
     } catch(e) {}
@@ -1044,6 +1239,7 @@ if (window.visualViewport) {
 initTheme();
 renderAll();
 updateFabMode();
+positionTabIndicator();
 // Service Worker registration
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
