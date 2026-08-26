@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>La mia spesa</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta property="og:title" content="La mia spesa">
+<meta property="og:description" content="Lista della spesa condivisa">
+<meta property="og:image" content="icon-512.png">
 <meta name="theme-color" content="#F1F5F9" id="themeColor">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -126,9 +130,10 @@
     background: var(--bg-card); border: 1px solid var(--border-color);
     border-radius: 24px; padding: 24px; width: 100%; max-width: 320px;
     text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    transform: scale(0.9) translateY(10px); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    --kb-offset: 0px;
+    transform: scale(0.9) translateY(calc(10px + var(--kb-offset))); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
+  .modal-overlay.active .modal-card { transform: scale(1) translateY(var(--kb-offset)); }
   .modal-icon-svg { margin-bottom: 12px; display: flex; justify-content: center; }
   .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; color: var(--text-primary); }
   .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4; }
@@ -641,10 +646,12 @@ function shareList(btnElement) {
   const namesArray = items.map(i => i.name);
   const encoded = btoa(encodeURI(JSON.stringify(namesArray)));
   const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+  const listText = namesArray.map(n => `• ${n}`).join('\n');
+  const message = `Ecco la mia lista:\n${listText}`;
   if (navigator.share) {
-    navigator.share({ title: 'Spesa', text: 'Ecco la mia lista:', url: shareUrl }).catch(() => {});
+    navigator.share({ title: 'Spesa', text: message, url: shareUrl }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(shareUrl);
+    navigator.clipboard.writeText(`${message}\n\n${shareUrl}`);
   }
 }
 function playSquash(container) {
@@ -1213,10 +1220,16 @@ document.getElementById('fabInput').addEventListener('keydown', e => {
 // visualViewport è l'unico modo affidabile per saperlo e riposizionarla a mano.
 if (window.visualViewport) {
   const bar = document.getElementById('bottomBar');
+  const modalCard = document.querySelector('.modal-card');
   function adjustBarForKeyboard() {
     const vv = window.visualViewport;
     const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
-    bar.style.transform = keyboardOffset > 60 ? `translateY(-${keyboardOffset}px)` : '';
+    const shift = keyboardOffset > 60 ? keyboardOffset : 0;
+    bar.style.transform = shift ? `translateY(-${shift}px)` : '';
+    if (modalCard) {
+      // Sposta il modal verso l'alto solo quanto basta a liberarlo dalla tastiera, mai oltre
+      modalCard.style.setProperty('--kb-offset', shift ? `-${Math.min(shift, 140)}px` : '0px');
+    }
   }
   window.visualViewport.addEventListener('resize', adjustBarForKeyboard);
   window.visualViewport.addEventListener('scroll', adjustBarForKeyboard);
