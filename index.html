@@ -514,6 +514,7 @@ const HIDE_DONE_KEY = 'spesa-app-hide-done';
 const SORT_CATEGORY_KEY = 'spesa-app-sort-category';
 const FREQ_HIDDEN_KEY = 'spesa-app-freq-hidden';
 const FREQ_RENAMED_KEY = 'spesa-app-freq-renamed';
+const FREQ_PRICES_KEY = 'spesa-app-freq-prices';
 function loadData(key) {
   try {
     const raw = localStorage.getItem(key);
@@ -529,10 +530,15 @@ let freqRenamed = (() => {
   try { return JSON.parse(localStorage.getItem(FREQ_RENAMED_KEY) || '{}'); }
   catch (e) { return {}; }
 })(); // baseKey -> nome personalizzato
+let freqPrices = (() => {
+  try { return JSON.parse(localStorage.getItem(FREQ_PRICES_KEY) || '{}'); }
+  catch (e) { return {}; }
+})(); // baseKey -> prezzo spannometrico di riferimento
 function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 function saveArchive() { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archives)); }
 function saveFreqHidden() { localStorage.setItem(FREQ_HIDDEN_KEY, JSON.stringify(freqHidden)); }
 function saveFreqRenamed() { localStorage.setItem(FREQ_RENAMED_KEY, JSON.stringify(freqRenamed)); }
+function saveFreqPrices() { localStorage.setItem(FREQ_PRICES_KEY, JSON.stringify(freqPrices)); }
 const TABS_ORDER = ['impostazioni', 'frequenti', 'lista'];
 let activeTab = 'lista';
 let modalCallback = null;
@@ -733,7 +739,7 @@ function addItem(name, opts) {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
       name: cleanDisplayTitle(name),
       isCompleted: false,
-      price: null,
+      price: freqPrices[key] != null ? freqPrices[key] : null,
       createdAt: Date.now()
     });
   }
@@ -991,9 +997,12 @@ function renderFrequent() {
     const style = CATEGORY_STYLES[category] || CATEGORY_STYLES['Altro'];
     const nameSafe = displayName.replace(/'/g, "\\'");
     const keySafe = item.key.replace(/'/g, "\\'");
+    const priceHtml = freqPrices[item.key] != null
+      ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">~ €${freqPrices[item.key].toFixed(2).replace('.', ',')}</div>`
+      : '';
     return `
       <div class="card" onclick="addFromFrequent('${nameSafe}')">
-        <div class="card-text"><span>${displayName}</span></div>
+        <div class="card-text"><span>${displayName}</span>${priceHtml}</div>
         <div class="badge" style="background:${style.bg};color:${style.text}">${category}</div>
         <button class="del-btn" onclick="event.stopPropagation(); editFrequentPrompt('${keySafe}', '${nameSafe}')" aria-label="Modifica" style="color:var(--text-muted);">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
@@ -1003,21 +1012,30 @@ function renderFrequent() {
   }).join('');
 }
 function editFrequentPrompt(key, currentName) {
+  const savedPrice = freqPrices[key];
   openModal({
     title: 'Modifica frequente',
-    desc: 'Cambia il nome con cui questo articolo appare tra i Frequenti.',
+    desc: 'Nome mostrato tra i Frequenti e prezzo spannometrico di riferimento (facoltativo, privato).',
     showInputs: true,
-    showTotalInput: false,
     inputNamePlaceholder: 'Nome articolo',
     inputNameValue: currentName,
+    inputTotalPlaceholder: 'Prezzo indicativo (€)',
+    inputTotalValue: savedPrice != null ? String(savedPrice).replace('.', ',') : '',
     confirmText: 'Salva',
-    onConfirm: ({ name }) => {
+    onConfirm: ({ name, total }) => {
       if (name && name.trim()) {
         freqRenamed[key] = cleanDisplayTitle(name.trim());
       } else {
         delete freqRenamed[key];
       }
+      const price = total ? parseFloat(total.replace(',', '.')) : null;
+      if (price) {
+        freqPrices[key] = price;
+      } else {
+        delete freqPrices[key];
+      }
       saveFreqRenamed();
+      saveFreqPrices();
       renderFrequent();
     }
   });
