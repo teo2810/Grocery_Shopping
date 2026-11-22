@@ -666,7 +666,30 @@ function playSquash(container) {
   container.classList.add('squash');
   setTimeout(() => container.classList.remove('squash'), 400);
 }
-function handleFabClick() {
+function scrollLastItemIntoView() {
+  const view = document.querySelector('.view-container');
+  const lastCard = document.querySelector('#listActive .card:last-of-type');
+  if (!view || !lastCard) return;
+
+  const vv = window.visualViewport;
+  const keyboardOffset = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+  const isKeyboardOpen = keyboardOffset > 60;
+  // Padding sufficiente per scrollare l'ultimo articolo sopra la tastiera + barra
+  const needed = isKeyboardOpen ? keyboardOffset + 100 : 140;
+  view.style.paddingBottom = needed + 'px';
+
+  requestAnimationFrame(() => {
+    const viewRect = view.getBoundingClientRect();
+    const cardRect = lastCard.getBoundingClientRect();
+    const visibleBottom = isKeyboardOpen
+      ? (vv.offsetTop + vv.height - 90)
+      : viewRect.bottom - 20;
+    const overflow = cardRect.bottom - visibleBottom;
+    if (overflow > 0) {
+      view.scrollTop += overflow + 12;
+    }
+  });
+}
   if (activeTab !== 'lista') {
     switchTab('lista');
     return;
@@ -686,11 +709,7 @@ function handleFabClick() {
       input.value = '';
       // Mantieni focus immediato (niente timeout che causa rimbalzo)
       input.focus();
-      // Scroll una sola volta, dopo il render, senza animazioni extra
-      requestAnimationFrame(() => {
-        const view = document.querySelector('.view-container');
-        if (view) view.scrollTop = view.scrollHeight;
-      });
+      scrollLastItemIntoView();
       const icon = document.getElementById('fabIcon');
       icon.classList.remove('confirm');
       void icon.offsetWidth;
@@ -1253,13 +1272,28 @@ if (window.visualViewport) {
     const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
     const shift = keyboardOffset > 60 ? keyboardOffset : 0;
     bar.style.transform = shift ? `translateY(-${shift}px)` : '';
-    // Niente padding dinamico: causava il rimbalzo della lista
+    // Aggiorna padding e scroll solo se la tastiera è cambiata di tanto
+    const viewContainer = document.querySelector('.view-container');
+    if (viewContainer) {
+      const needed = shift ? shift + 100 : 140;
+      const current = parseInt(viewContainer.style.paddingBottom) || 280;
+      if (Math.abs(current - needed) > 20) {
+        viewContainer.style.paddingBottom = needed + 'px';
+      }
+    }
     if (modalCard) {
       // Sposta il modal verso l'alto solo quanto basta a liberarlo dalla tastiera, mai oltre
       modalCard.style.setProperty('--kb-offset', shift ? `-${Math.min(shift, 140)}px` : '0px');
     }
   }
-  window.visualViewport.addEventListener('resize', adjustBarForKeyboard);
+  window.visualViewport.addEventListener('resize', () => {
+    adjustBarForKeyboard();
+    // Se la tastiera è aperta e stiamo aggiungendo, tieni visibile l'ultimo articolo
+    const fab = document.getElementById('fabContainer');
+    if (fab && fab.classList.contains('expanded')) {
+      scrollLastItemIntoView();
+    }
+  });
   window.visualViewport.addEventListener('scroll', adjustBarForKeyboard);
 }
 // Import from share URL
