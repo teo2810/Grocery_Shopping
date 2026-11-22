@@ -48,7 +48,7 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   #app { 
-    max-width: 480px; margin: 0 auto; height: 100vh; height: 100dvh;
+    max-width: 480px; margin: 0 auto; height: 100vh; 
     position: relative; display: flex; flex-direction: column; 
   }
   .header-container {
@@ -75,8 +75,7 @@
     100% { transform: translate(0, 0) scale(1); opacity: 1; }
   }
   .animate-plane { animation: planeTakeoff 0.65s cubic-bezier(0.4, 0, 0.2, 1); }
-  .view-container { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 96px; display: flex; flex-direction: column; }
-  #view-lista.active { margin-top: auto; width: 100%; }
+  .view-container { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 120px; display: flex; flex-direction: column; }
   .empty { text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500; margin-top: 60px; padding: 0 30px; line-height: 1.6; }
   .list { position: relative; }
   .card {
@@ -189,8 +188,8 @@
   input:checked + .slider { background-color: var(--accent); }
   input:checked + .slider:before { transform: translateX(20px); }
   .bottom-bar {
-    position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 100;
-    height: 60px;
+    position: fixed; left: 16px; right: 16px; bottom: 20px; z-index: 100;
+    max-width: 448px; margin: 0 auto; height: 60px;
     background: var(--sheet-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
@@ -266,6 +265,7 @@
   .fab-container.expanded .fab-icon { stroke: var(--accent); }
   .view { display: none; }
   .view.active { display: block; animation: viewFadeIn 0.18s ease; }
+  #view-lista.active { margin-top: auto; width: 100%; }
   @keyframes viewFadeIn { from { opacity: 0; } to { opacity: 1; } }
   .section-label {
     font-size: 12px; font-weight: 700; color: var(--text-muted);
@@ -370,7 +370,7 @@
     <div class="fab-wrapper" id="fabWrapper">
       <div class="fab-container" id="fabContainer">
         <input type="text" id="fabInput" class="fab-input" placeholder="Scrivi articolo..." autocomplete="off">
-        <button class="fab-btn" id="fabBtn" type="button" aria-label="Aggiungi">
+        <button class="fab-btn" id="fabBtn" onclick="handleFabClick()" aria-label="Aggiungi">
           <svg class="fab-icon" id="fabIcon" data-mode="plus" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
@@ -667,11 +667,6 @@ function playSquash(container) {
   container.classList.add('squash');
   setTimeout(() => container.classList.remove('squash'), 400);
 }
-function pinListAboveBar() {
-  const view = document.querySelector('.view-container');
-  if (!view) return;
-  view.scrollTop = view.scrollHeight;
-}
 function handleFabClick() {
   if (activeTab !== 'lista') {
     switchTab('lista');
@@ -682,20 +677,20 @@ function handleFabClick() {
   if (!container.classList.contains('expanded')) {
     container.classList.add('expanded');
     playSquash(container);
-    setTimeout(() => {
-      input.focus();
-    }, 150);
+    setTimeout(() => input.focus(), 150);
   } else {
     const name = input.value.trim();
     if (name) {
       addItem(name);
       input.value = '';
-      // Mantieni focus immediato (niente timeout che causa rimbalzo)
-      input.focus({ preventScroll: true });
-      requestAnimationFrame(pinListAboveBar);
+      input.focus();
+      requestAnimationFrame(() => {
+        const view = document.getElementById('swipeArea');
+        if (view) view.scrollTop = view.scrollHeight;
+      });
       const icon = document.getElementById('fabIcon');
       icon.classList.remove('confirm');
-      void icon.offsetWidth;
+      void icon.offsetWidth; // forza il reflow per poter ri-attivare l'animazione a raffica
       icon.classList.add('confirm');
       setTimeout(() => icon.classList.remove('confirm'), 300);
     } else {
@@ -1245,63 +1240,30 @@ document.getElementById('fabInput').addEventListener('keydown', e => {
     handleFabClick();
   }
 });
-// Il + non deve togliere il focus all'input quando è già aperto, altrimenti la tastiera si chiude.
-(function bindFab() {
-  const btn = document.getElementById('fabBtn');
-  let keepFocus = false;
-  btn.addEventListener('pointerdown', (e) => {
-    const expanded = document.getElementById('fabContainer').classList.contains('expanded');
-    if (expanded) {
-      e.preventDefault();
-      keepFocus = true;
-    }
-  });
-  btn.addEventListener('pointerup', (e) => {
-    if (!keepFocus) return;
-    e.preventDefault();
-    handleFabClick();
-  });
-  btn.addEventListener('click', (e) => {
-    if (keepFocus) {
-      keepFocus = false;
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    handleFabClick();
-  });
-})();
-// L'app si riduce all'area visibile: la barra resta sopra la tastiera e la lista cresce dal basso.
-function fitAppToKeyboard() {
-  const app = document.getElementById('app');
-  const vv = window.visualViewport;
-  if (!vv) return;
-  const keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-  if (keyboard > 80) {
-    app.style.position = 'fixed';
-    app.style.top = vv.offsetTop + 'px';
-    app.style.left = '0';
-    app.style.right = '0';
-    app.style.margin = '0 auto';
-    app.style.width = '100%';
-    app.style.maxWidth = '480px';
-    app.style.height = vv.height + 'px';
-    app.style.transform = 'none';
-  } else {
-    app.style.position = '';
-    app.style.top = '';
-    app.style.left = '';
-    app.style.right = '';
-    app.style.height = '';
-    app.style.width = '';
-    app.style.transform = '';
-  }
-  const fab = document.getElementById('fabContainer');
-  if (fab && fab.classList.contains('expanded')) pinListAboveBar();
-}
+// La barra in fondo (position:fixed) su iOS Safari non segue da sola la tastiera:
+// visualViewport è l'unico modo affidabile per saperlo e riposizionarla a mano.
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', fitAppToKeyboard);
-  window.visualViewport.addEventListener('scroll', fitAppToKeyboard);
+  const bar = document.getElementById('bottomBar');
+  const modalCard = document.querySelector('.modal-card');
+  function adjustBarForKeyboard() {
+    const vv = window.visualViewport;
+    const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
+    const shift = keyboardOffset > 60 ? keyboardOffset : 0;
+    const changed = adjustBarForKeyboard.last !== shift;
+    adjustBarForKeyboard.last = shift;
+    bar.style.transform = shift ? `translateY(-${shift}px)` : '';
+    const view = document.getElementById('swipeArea');
+    if (view) view.style.paddingBottom = (120 + shift) + 'px';
+    if (changed && shift && view) {
+      requestAnimationFrame(() => { view.scrollTop = view.scrollHeight; });
+    }
+    if (modalCard) {
+      // Sposta il modal verso l'alto solo quanto basta a liberarlo dalla tastiera, mai oltre
+      modalCard.style.setProperty('--kb-offset', shift ? `-${Math.min(shift, 140)}px` : '0px');
+    }
+  }
+  window.visualViewport.addEventListener('resize', adjustBarForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustBarForKeyboard);
 }
 // Import from share URL
 (function() {
@@ -1324,7 +1286,7 @@ updateFabMode();
 positionTabIndicator();
 // Service Worker registration
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js?v=9').catch(() => {});
 }
 </script>
 </body>
