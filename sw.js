@@ -1,4 +1,4 @@
-const CACHE = 'spesa-v6';
+const CACHE = 'spesa-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -27,8 +27,8 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const resClone = res.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, resClone));
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, copy));
         return res;
       })
       .catch(() => caches.match(e.request))
