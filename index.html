@@ -75,7 +75,7 @@
     100% { transform: translate(0, 0) scale(1); opacity: 1; }
   }
   .animate-plane { animation: planeTakeoff 0.65s cubic-bezier(0.4, 0, 0.2, 1); }
-  .view-container { flex: 1; overflow-y: auto; padding: 0 16px 120px; }
+  .view-container { flex: 1; overflow-y: auto; padding: 0 16px 280px; }
   .empty { text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500; margin-top: 60px; padding: 0 30px; line-height: 1.6; }
   .list { position: relative; }
   .card {
@@ -678,29 +678,24 @@ function handleFabClick() {
     playSquash(container);
     setTimeout(() => {
       input.focus();
-      // Porta in vista il fondo della lista quando si apre la tastiera
-      setTimeout(() => {
-        const view = document.querySelector('.view-container');
-        if (view) view.scrollTop = view.scrollHeight;
-      }, 300);
     }, 150);
   } else {
     const name = input.value.trim();
     if (name) {
       addItem(name);
       input.value = '';
-      // Scorri in fondo alla lista così l'articolo appena aggiunto è subito visibile
-      setTimeout(() => {
+      // Mantieni focus immediato (niente timeout che causa rimbalzo)
+      input.focus();
+      // Scroll una sola volta, dopo il render, senza animazioni extra
+      requestAnimationFrame(() => {
         const view = document.querySelector('.view-container');
         if (view) view.scrollTop = view.scrollHeight;
-      }, 50);
+      });
       const icon = document.getElementById('fabIcon');
       icon.classList.remove('confirm');
-      void icon.offsetWidth; // forza il reflow per poter ri-attivare l'animazione a raffica
+      void icon.offsetWidth;
       icon.classList.add('confirm');
       setTimeout(() => icon.classList.remove('confirm'), 300);
-      // Mantieni la tastiera aperta per continuare a inserire
-      setTimeout(() => input.focus(), 10);
     } else {
       closeFab();
     }
@@ -1258,11 +1253,7 @@ if (window.visualViewport) {
     const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
     const shift = keyboardOffset > 60 ? keyboardOffset : 0;
     bar.style.transform = shift ? `translateY(-${shift}px)` : '';
-    // Aggiusta il padding del contenitore lista così gli ultimi articoli restano visibili sopra la tastiera
-    const viewContainer = document.querySelector('.view-container');
-    if (viewContainer) {
-      viewContainer.style.paddingBottom = shift ? `${120 + shift}px` : '120px';
-    }
+    // Niente padding dinamico: causava il rimbalzo della lista
     if (modalCard) {
       // Sposta il modal verso l'alto solo quanto basta a liberarlo dalla tastiera, mai oltre
       modalCard.style.setProperty('--kb-offset', shift ? `-${Math.min(shift, 140)}px` : '0px');
